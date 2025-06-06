@@ -1,0 +1,77 @@
+---
+- name: Setup Backend server for VamosCloudAPI
+  hosts: backend
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Python 3, pip, and MySQL/MariaDB client libraries
+      apt:
+        name:
+          - python3
+          - python3-pip
+          - mariadb-client
+          - libmariadb-dev
+          - python3-pymysql
+        state: present
+
+    - name: Install Flask and SQLAlchemy via pip
+      pip:
+        name:
+          - flask
+          - flask_sqlalchemy
+        state: present
+
+    - name: Ensure /home/vagrant/backend exists
+      file:
+        path: /home/vagrant/backend
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: 0755
+
+    - name: Copy backend app
+      copy:
+        src: /vagrant/app/backend/
+        dest: /home/vagrant/backend/
+        owner: vagrant
+        group: vagrant
+        mode: 0755
+
+    - name: Allow port 5005 for Flask backend through UFW
+      ufw:
+        rule: allow
+        port: '5005'
+        proto: tcp
+
+    - name: Copy systemd service file for backend
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/backend.service
+        content: |
+          [Unit]
+          Description=Flask Backend App
+          After=network.target
+
+          [Service]
+          User=vagrant
+          WorkingDirectory=/home/vagrant/backend
+          ExecStart=/usr/bin/python3 /home/vagrant/backend/app.py -p 5005
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Reload systemd
+
+    - name: Enable and start backend service
+      ansible.builtin.systemd:
+        name: backend
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

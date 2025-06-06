@@ -1,0 +1,21 @@
+---
+- name: Install community.mysql collection
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Install community.mysql collection
+      command:
+        argv:
+          - ansible-galaxy
+          - collection
+          - install
+          - community.mysql
+
+- name: Provision DB server
+  import_playbook: db.yml
+
+- name: Provision Backend server
+  import_playbook: backend.yml
+
+- name: Provision Frontend server
+  import_playbook: frontend.yml

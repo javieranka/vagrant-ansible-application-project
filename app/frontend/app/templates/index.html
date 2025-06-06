@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="text-center mt-5">{{ app_name }}</h1>
+
+
+{% include "components/dashboard.html" %}
+
+<div class="text-center my-5">
+    <img src="https://http.cat/images/200.jpg" alt="Welcome to {{ app_name }}" style="max-width: 500px; max-height: 400px;">
+</div>
+
+{% endblock %}

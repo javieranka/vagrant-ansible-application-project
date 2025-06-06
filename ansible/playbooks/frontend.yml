@@ -1,0 +1,75 @@
+---
+- name: Setup Frontend server for VamosCloudApp
+  hosts: frontend
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Python 3 and pip
+      apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install Flask and Requests via pip
+      pip:
+        name: 
+          - flask
+          - requests
+        state: present
+
+    - name: Ensure /home/vagrant/frontend exists
+      file:
+        path: /home/vagrant/frontend
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: 0755
+
+    - name: Copy frontend app
+      copy:
+        src: /vagrant/app/frontend/
+        dest: /home/vagrant/frontend/
+        owner: vagrant
+        group: vagrant
+        mode: 0755
+
+    - name: Allow HTTP traffic on port 3000
+      ufw:
+        rule: allow
+        port: '3000'
+        proto: tcp
+
+    - name: Copy systemd service file for frontend
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/frontend.service
+        content: |
+          [Unit]
+          Description=Flask Frontend App
+          After=network.target
+
+          [Service]
+          User=vagrant
+          WorkingDirectory=/home/vagrant/frontend
+          ExecStart=/usr/bin/python3 /home/vagrant/frontend/webserver.py -p 3000
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Reload systemd
+
+    - name: Enable and start frontend service
+      ansible.builtin.systemd:
+        name: frontend
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
